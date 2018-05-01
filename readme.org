@@ -1,0 +1,12 @@
+provide functionality for multiprocessing modules
+
+example usage
+
+when using grid search, we usually want to run a 
+program multiple times, we can just supply multiple 
+argument to the same program
+
+The important file to see is src/parallel_run.py
+
+the current version assumes that web app uses 1 process
+to handle request
