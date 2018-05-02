@@ -92,16 +92,16 @@ class ProcessManager():
         self.ps_lock.release()
 
 
-    def run(self, callback=None):
+    def run(self, callback=None, show_progress=True):
         if self.run_thread is not None:
             assert not self.run_thread.isAlive(), "run thread should be dead, either not terminate all or a bug"
             del self.run_thread            
-        p = threading.Thread(target=self._run, args=(callback,))
+        p = threading.Thread(target=self._run, args=(callback,show_progress))
         self.run_thread = p
         p.start()
         #return self._run(callback=callback)
     
-    def _run(self, callback=None):
+    def _run(self, callback=None, show_progress=True):
         # run all processes
         self.ps_lock.acquire()                
         self.ps_run = self.ps_wait[-self.max_size:][::-1]
@@ -130,8 +130,9 @@ class ProcessManager():
                         if callback is not None:
                             callback(self.return_dict[p.key]) 
                     del p # prevent opening too many files error
-                
-                #print(self.progress()) # note only here is correct
+
+                if show_progress:
+                    print(self._progress()) # note only here is correct
                 
                 # add back new processes
                 added_back = False
@@ -178,14 +179,6 @@ class ProcessManager():
 
         # make sure run_thread stops
         while (self.run_thread is not None) and self.run_thread.isAlive():
-            # with open('tmp.txt', 'w')  as f:
-            #     f.write("waiting for run thread to finish")
-            # text = []
-            # text.append("waiting for run thread to finish")
-            # text.append("sleeping", self.ps_lock.locked(), self.progress())
-            # text.append(self.ps_run, self.ps_wait)
-            # with open('tmp.txt', 'w')  as f:
-            #     f.write("\n".join(text))
             print("waiting for run thread to finish")
             print("sleeping", self.ps_lock.locked(), self.progress())
             print(self.ps_run, self.ps_wait)
@@ -194,9 +187,14 @@ class ProcessManager():
     def __repr__(self):        
         return self.progress()    
     
-    def progress(self):
-        self.ps_lock.acquire()                        
+
+    def _progress(self):
         total = len(self.ps_done) + sum([p.is_alive() for p in self.ps_run]) + len(self.ps_wait)
-        self.ps_lock.release()                        
         return "%d/%d done" % (len(self.ps_done), total)
+
+    def progress(self):
+        self.ps_lock.acquire()
+        res = self._progress()
+        self.ps_lock.release()                        
+        return res
 
